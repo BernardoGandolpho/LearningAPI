@@ -3,4 +3,4 @@ venv-flask/
 venv-fastapi/
 venv-django/
 
-__cache__.py
+__pycache__
