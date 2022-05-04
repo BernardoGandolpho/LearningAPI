@@ -1,20 +1,18 @@
 from typing import Optional
-
 from enum import Enum
-
 from fastapi import FastAPI
 
 
 app = FastAPI()
 
 
-# root
+# Root
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
 
-# paths and query parameters
+# Paths and query parameters
 @app.get("/users/{user_id}/items/{item_id}")
 async def read_user_item(
     user_id: int, item_id: str, needy: str, q: Optional[str] = None, short: bool = False
@@ -29,7 +27,7 @@ async def read_user_item(
     return item
 
 
-# predefined items
+# Predefined items
 class ModelName(str, Enum):
     alexnet = "alexnet"
     resnet = "resnet"
