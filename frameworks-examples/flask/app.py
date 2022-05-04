@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify
 
-# Criando a aplicação com Flask
+# Creating Flask app
 app = Flask(__name__)
 
-# Lista de dicionários para simular um banco de dados
+# List of dictionaries to replace a database
 countries = [
     {"id": 1, "name": "Thailand", "capital": "Bangkok", "area": 513120},
     {"id": 2, "name": "Australia", "capital": "Canberra", "area": 7617930},
@@ -11,12 +11,12 @@ countries = [
 ]
 
 
-# Função para encontrar o próximo id para requisições com método POST
+# Funtion to find the next id for POST requests
 def _find_next_id():
     return max(country["id"] for country in countries) + 1
 
 
-# Rotas
+# Routes
 @app.get("/countries")
 def get_countries():
     return jsonify(countries)

@@ -1,22 +1,22 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-# Criando a aplicação com FastAPI
+# Creating FastAPI app
 app = FastAPI()
 
-# Função para encontrar o próximo id para requisições com método POST
+# Funtion to find the next id for POST requests
 def _find_next_id():
     return max(country.country_id for country in countries) + 1
 
 
-# Modelo para cerificação e armazenamento dos registros
+# Model for validation and storage of registers
 class Country(BaseModel):
     country_id: int = Field(default_factory=_find_next_id, alias="id")
     name: str
     capital: str
     area: int
 
-# Lista de dicionários para simular um banco de dados
+# List of dictionaries to replace a database
 countries = [
     Country(id=1, name="Thailand", capital="Bangkok", area=513120),
     Country(id=2, name="Australia", capital="Canberra", area=7617930),
@@ -24,7 +24,7 @@ countries = [
 ]
 
 
-# Rotas
+# Routes
 @app.get("/countries")
 async def get_countries():
     return countries
