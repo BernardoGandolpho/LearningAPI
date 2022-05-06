@@ -1,0 +1,121 @@
+[
+    {
+        "name": "Rayquaza",
+        "pokedex_id": 384,
+        "types": [
+            "Dragon",
+            "Flying"
+        ],
+        "moveset": [
+            {
+                "name": "Twister",
+                "power": 40,
+                "accuracy": 1
+            },
+            {
+                "name": "Outrage",
+                "power": 120,
+                "accuracy": 1
+            }
+        ]
+    },
+    {
+        "name": "Chimchar",
+        "pokedex_id": 390,
+        "types": [
+            "Fire"
+        ],
+        "moveset": [
+            {
+                "name": "Ember",
+                "power": 40,
+                "accuracy": 1.0,
+                "description": "None"
+            },
+            {
+                "name": "Taunt",
+                "power": 0,
+                "accuracy": 1.0,
+                "description": "None"
+            }
+        ]
+    },
+    {
+        "name": "Garchomp",
+        "pokedex_id": 445,
+        "types": [
+            "Dragon",
+            "Ground"
+        ],
+        "moveset": [
+            {
+                "name": "Sand Tomb",
+                "power": 35,
+                "accuracy": 0.85
+            },
+            {
+                "name": "Dragon Breath",
+                "power": 60,
+                "accuracy": 1
+            }
+        ]
+    },
+    {
+        "name": "Lucario",
+        "pokedex_id": 448,
+        "types": [
+            "Fighting",
+            "Steel"
+        ],
+        "moveset": [
+            {
+                "name": "Force Palm",
+                "power": 60,
+                "accuracy": 1
+            },
+            {
+                "name": "Metal Claw",
+                "power": 50,
+                "accuracy": 0.95
+            }
+        ]
+    },
+    {
+        "name": "Froakie",
+        "pokedex_id": 656,
+        "types": [
+            "Water"
+        ],
+        "moveset": [
+            {
+                "name": "Bubble",
+                "power": 40,
+                "accuracy": 1
+            },
+            {
+                "name": "Water Pulse",
+                "power": 60,
+                "accuracy": 1
+            }
+        ]
+    },
+    {
+        "name": "Sylveon",
+        "pokedex_id": 700,
+        "types": [
+            "Fairy"
+        ],
+        "moveset": [
+            {
+                "name": "Take Down",
+                "power": 90,
+                "accuracy": 0.85
+            },
+            {
+                "name": "Draining Kiss",
+                "power": 50,
+                "accuracy": 1
+            }
+        ]
+    }
+]

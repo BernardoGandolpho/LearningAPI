@@ -1,9 +1,8 @@
-from typing import List, Optional, Set
+from typing import List, Optional
+import json
 
-from fastapi import Body, FastAPI, Path, Query
+from fastapi import FastAPI, HTTPException, Path, Query
 from pydantic import BaseModel, Field
-
-from db_pokemon import data
 
 
 app = FastAPI()
@@ -20,12 +19,15 @@ class Move(BaseModel):
 class Pokemon(BaseModel):
     name: str = Field(..., min_length=3, max_length=30)
     pokedex_id: int = Field(..., gt=0, le=905)
-    types: Set[str] = []
+    types: List[str] = []
     moveset: Optional[List[Move]] = None
 
 
 # Database to be replaced
-db_place_holder = data
+db_place_holder = None
+
+with open("db_pokemon.json", "r") as file:
+    db_place_holder = json.loads(file.read())
 
 
 # Routes
@@ -38,13 +40,13 @@ async def root():
 async def list_pokemon(
         skip: Optional[int] = Query(0),
         limit: Optional[int] = Query(10)):
-    return db_place_holder[skip : skip + limit]
+    return {"pokemons": db_place_holder[skip : skip + limit]}
 
 
 @app.get("/pokemons/{id}")
 async def find_pokemon(
         id: int = Path(..., ge=0, lt=906)):
-    return db_place_holder[id]
+    return {"Pokemon": db_place_holder[id]}
 
 
 @app.get("/pokemons/{id}/moveset")
@@ -53,11 +55,29 @@ async def list_moveset(
         skip: Optional[int] = Query(0),
         limit: Optional[int] = Query(10)):
     results = db_place_holder[id]["moveset"][skip : skip + limit]
-    return results
+    return {"moveset": results}
 
 
 @app.get("/pokemons/{id}/moveset/{move_id}")
 async def find_move(
         id: int = Path(..., ge=0, lt=906),
         move_id: int = Path(..., ge=0, lt=2)):
-    return db_place_holder[id]["moveset"][move_id]
+    return {"move": db_place_holder[id]["moveset"][move_id]}
+
+
+@app.post("/pokemons", status_code=201)
+async def create_pokemon(pokemon: Pokemon):
+    new_pokemon = pokemon.dict()
+
+    for pokemon in db_place_holder:
+        if pokemon["pokedex_id"] == new_pokemon["pokedex_id"]:
+            raise HTTPException(status_code=400, detail="Duplicate pokemon")
+
+    db_place_holder.append(new_pokemon)
+
+    db_place_holder.sort(key=lambda x: x["pokedex_id"])
+    
+    with open("db_pokemon.json", "w") as file:
+        file.write(str(db_place_holder).replace("'", '"').replace(' None', ' "None"'))
+    
+    return (new_pokemon)
