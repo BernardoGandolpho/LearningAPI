@@ -38,6 +38,7 @@ class Move(BaseModel):
     power: int = Field(..., ge=0)
     accuracy: Optional[float] = Field(1, gt=0, le=1)
     description: Optional[str] = Field(None, max_length=300)
+
     class Config:
         allow_population_by_field_name = True
         arbitrary_types_allowed = True
@@ -58,8 +59,40 @@ class PokemonModel(BaseModel):
     pokedex_id: int = Field(..., gt=0, le=905)
     types: List[str] = []
     moveset: Optional[List[Move]] = None
+
     class Config:
         allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+        schema_extra = {
+            "example": {
+                "name": "Squirtle",
+                "pokedex_id": 7,
+                "types": [
+                    "Water"
+                ],
+                "moveset": [
+                    {
+                        "name": "Water Gun",
+                        "power": 40,
+                        "accuracy": 1
+                    },
+                    {
+                        "name": "Aqua Tail",
+                        "power": 90,
+                        "accuracy": 0.9
+                    }
+                ]
+            }
+        }
+
+
+class UpdatePokemonModel(BaseModel):
+    name: str = Field(..., min_length=3, max_length=30)
+    types: List[str] = []
+    moveset: Optional[List[Move]] = None
+
+    class Config:
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
         schema_extra = {
@@ -142,7 +175,7 @@ async def find_move(
     raise HTTPException(status_code=404, detail=f"Pokemon {id} not found")
 
 
-@app.post("/pokemons", response_description="Add new student", response_model=PokemonModel)
+@app.post("/pokemons", response_model=PokemonModel)
 async def create_pokemon(pokemon: PokemonModel = Body(...)):
     new_pokemon = jsonable_encoder(pokemon)
 
@@ -156,6 +189,25 @@ async def create_pokemon(pokemon: PokemonModel = Body(...)):
         raise HTTPException(status_code=500, detail="Internar Server Error")
 
 
+@app.put("/pokemons/{id}", response_model=PokemonModel)
+async def update_pokemon(id: int = Path(..., gt=0, le=905), pokemon: UpdatePokemonModel = Body(...)):
+    pokemon = {k: v for k, v in pokemon.dict().items() if v is not None}
+
+    if len(pokemon) >= 1:
+        update_result = await db["pokemons"].update_one({"pokedex_id": id}, {"$set": pokemon})
+
+        if update_result.modified_count == 1:
+            if (
+                updated_pokemon := await db["pokemons"].find_one({"pokedex_id": id})
+            ) is not None:
+                return updated_pokemon
+
+    if (existing_pokemon := await db["pokemons"].find_one({"pokedex_id": id})) is not None:
+        return existing_pokemon
+
+    raise HTTPException(status_code=404, detail=f"Pokemon {id} not found")
+
+
 @app.delete("/pokemons/{id}")
 async def delete_pokemon(id: int = Path(..., gt=0, le=905)):
 
@@ -165,4 +217,3 @@ async def delete_pokemon(id: int = Path(..., gt=0, le=905)):
         return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
 
     raise HTTPException(status_code=404, detail=f"Pokemon {id} not found")
-    
