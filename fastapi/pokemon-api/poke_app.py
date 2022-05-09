@@ -101,7 +101,7 @@ async def list_pokemon(
 
 
 @app.get("/pokemons/{id}")
-async def find_pokemon(id: int = Path(..., ge=0, le=906)):
+async def find_pokemon(id: int = Path(..., gt=0, le=905)):
     pokemon = await db["pokemons"].find_one({"pokedex_id": id}, projection={"_id": False})
 
     if pokemon is not None:
@@ -112,7 +112,7 @@ async def find_pokemon(id: int = Path(..., ge=0, le=906)):
 
 @app.get("/pokemons/{id}/moveset")
 async def list_moveset(
-        id: int = Path(..., ge=0, lt=906),
+        id: int = Path(..., gt=0, le=905),
         skip: Optional[int] = Query(0),
         limit: Optional[int] = Query(10)):
 
@@ -127,14 +127,17 @@ async def list_moveset(
 
 @app.get("/pokemons/{id}/moveset/{move_id}")
 async def find_move(
-        id: int = Path(..., ge=0, lt=906),
-        move_id: int = Path(..., ge=0, lt=2)):
+        id: int = Path(..., gt=0, le=905),
+        move_id: int = Path(..., ge=0, lt=30)):
 
     pokemon = await db["pokemons"].find_one({"pokedex_id": id})
 
     if pokemon is not None:
-        result = pokemon["moveset"][move_id]
-        return result
+        if len(pokemon["moveset"]) > move_id:
+            result = pokemon["moveset"][move_id]
+            return result
+            
+        raise HTTPException(status_code=404, detail=f"Move {move_id} from pokemon {id} not found")
 
     raise HTTPException(status_code=404, detail=f"Pokemon {id} not found")
 
@@ -151,3 +154,15 @@ async def create_pokemon(pokemon: PokemonModel = Body(...)):
         return JSONResponse(status_code=status.HTTP_201_CREATED, content=new_pokemon)
     except:
         raise HTTPException(status_code=500, detail="Internar Server Error")
+
+
+@app.delete("/pokemons/{id}")
+async def delete_pokemon(id: int = Path(..., gt=0, le=905)):
+
+    delete_result = await db["pokemons"].delete_one({"pokedex_id": id})
+
+    if delete_result.deleted_count == 1:
+        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT)
+
+    raise HTTPException(status_code=404, detail=f"Pokemon {id} not found")
+    
