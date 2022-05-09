@@ -1,11 +1,35 @@
+import os
 from typing import List, Optional
-import json
 
-from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi import FastAPI, HTTPException, Body, Path, Query, status
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field
+from bson import ObjectId
+import motor.motor_asyncio
 
 
+# App and Database
 app = FastAPI()
+
+client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
+db = client.pokedex
+
+
+class PyObjectId(ObjectId):
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if not ObjectId.is_valid(v):
+            raise ValueError("Invalid objectid")
+        return ObjectId(v)
+
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        field_schema.update(type="string")
 
 
 # Classes and Models
@@ -14,20 +38,51 @@ class Move(BaseModel):
     power: int = Field(..., ge=0)
     accuracy: Optional[float] = Field(1, gt=0, le=1)
     description: Optional[str] = Field(None, max_length=300)
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+        schema_extra = {
+            "example": {
+                "name": "Quick Attack",
+                "power": 40,
+                "accuracy": 1,
+                "description": "Quick Attack inflicts damage. It has a priority of +1, so it is used before all moves that do not have increased priority.",
+            }
+        }
 
 
-class Pokemon(BaseModel):
+class PokemonModel(BaseModel):
+    id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
     name: str = Field(..., min_length=3, max_length=30)
     pokedex_id: int = Field(..., gt=0, le=905)
     types: List[str] = []
     moveset: Optional[List[Move]] = None
-
-
-# Database to be replaced
-db_place_holder = None
-
-with open("db_pokemon.json", "r") as file:
-    db_place_holder = json.loads(file.read())
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+        schema_extra = {
+            "example": {
+                "name": "Squirtle",
+                "pokedex_id": 7,
+                "types": [
+                    "Water"
+                ],
+                "moveset": [
+                    {
+                        "name": "Water Gun",
+                        "power": 40,
+                        "accuracy": 1
+                    },
+                    {
+                        "name": "Aqua Tail",
+                        "power": 90,
+                        "accuracy": 0.9
+                    }
+                ]
+            }
+        }
 
 
 # Routes
@@ -40,13 +95,19 @@ async def root():
 async def list_pokemon(
         skip: Optional[int] = Query(0),
         limit: Optional[int] = Query(10)):
-    return {"pokemons": db_place_holder[skip : skip + limit]}
+        
+    pokemons = await db["pokemons"].find(skip=skip, limit=limit, projection={"_id": False}).sort('pokedex_id').to_list(limit)
+    return pokemons
 
 
 @app.get("/pokemons/{id}")
-async def find_pokemon(
-        id: int = Path(..., ge=0, lt=906)):
-    return {"Pokemon": db_place_holder[id]}
+async def find_pokemon(id: int = Path(..., ge=0, le=906)):
+    pokemon = await db["pokemons"].find_one({"pokedex_id": id}, projection={"_id": False})
+
+    if pokemon is not None:
+        return pokemon
+
+    raise HTTPException(status_code=404, detail=f"Pokemon {id} not found")
 
 
 @app.get("/pokemons/{id}/moveset")
@@ -54,30 +115,39 @@ async def list_moveset(
         id: int = Path(..., ge=0, lt=906),
         skip: Optional[int] = Query(0),
         limit: Optional[int] = Query(10)):
-    results = db_place_holder[id]["moveset"][skip : skip + limit]
-    return {"moveset": results}
+
+    pokemon = await db["pokemons"].find_one({"pokedex_id": id})
+
+    if pokemon is not None:
+        results = pokemon["moveset"][skip : skip + limit]
+        return results
+
+    raise HTTPException(status_code=404, detail=f"Pokemon {id} not found")
 
 
 @app.get("/pokemons/{id}/moveset/{move_id}")
 async def find_move(
         id: int = Path(..., ge=0, lt=906),
         move_id: int = Path(..., ge=0, lt=2)):
-    return {"move": db_place_holder[id]["moveset"][move_id]}
+
+    pokemon = await db["pokemons"].find_one({"pokedex_id": id})
+
+    if pokemon is not None:
+        result = pokemon["moveset"][move_id]
+        return result
+
+    raise HTTPException(status_code=404, detail=f"Pokemon {id} not found")
 
 
-@app.post("/pokemons", status_code=201)
-async def create_pokemon(pokemon: Pokemon):
-    new_pokemon = pokemon.dict()
+@app.post("/pokemons", response_description="Add new student", response_model=PokemonModel)
+async def create_pokemon(pokemon: PokemonModel = Body(...)):
+    new_pokemon = jsonable_encoder(pokemon)
 
-    for pokemon in db_place_holder:
-        if pokemon["pokedex_id"] == new_pokemon["pokedex_id"]:
-            raise HTTPException(status_code=400, detail="Duplicate pokemon")
+    if (await db["pokemons"].find_one({"pokedex_id": pokemon.pokedex_id})) is not None:
+        raise HTTPException(status_code=400, detail="Duplicate pokemon")
 
-    db_place_holder.append(new_pokemon)
-
-    db_place_holder.sort(key=lambda x: x["pokedex_id"])
-    
-    with open("db_pokemon.json", "w") as file:
-        file.write(str(db_place_holder).replace("'", '"').replace(' None', ' "None"'))
-    
-    return (new_pokemon)
+    try:
+        await db["pokemons"].insert_one(new_pokemon)
+        return JSONResponse(status_code=status.HTTP_201_CREATED, content=new_pokemon)
+    except:
+        raise HTTPException(status_code=500, detail="Internar Server Error")

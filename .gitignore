@@ -4,3 +4,5 @@ venv-fastapi/
 venv-django/
 
 __pycache__
+
+.ENV
