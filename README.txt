@@ -28,6 +28,10 @@ Executar o servidor FastAPI a partir do diretório frameworks-examples/fastapi/
 $ uvicorn app:app --reload
 
 
-A pasta fastapi no diretório raíz possui um projeto mais elaborado usando o FastAPI que pode ser executado utilizando o comando:
-$ uvicorn main:app --reload
-No entando, esse último projeto ainda está sendo montado
+A pasta /fastapi no diretório raíz possui um projeto mais elaborado usando o FastAPI.
+O arquivo api_practice.py possui um exemplo utilizando modelos e classes importantes do FastAPI e pode ser executado com o comando:
+$ uvicorn app_practice:app --reload
+
+Na pasta /pokemon-api está o projeto mais elaborado utilizando o que aprendi para fazer uma API RESTful utilizando FastAPI.
+para executá-lo, basta definir a variável de ambiente MONGODB_URL com o link de conexão com um banco de dados MongoDB e executar o comando:
+$ python main.py

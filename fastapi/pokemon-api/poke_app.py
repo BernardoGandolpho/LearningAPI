@@ -98,7 +98,6 @@ class UpdatePokemonModel(BaseModel):
         schema_extra = {
             "example": {
                 "name": "Squirtle",
-                "pokedex_id": 7,
                 "types": [
                     "Water"
                 ],
